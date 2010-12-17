@@ -294,6 +294,7 @@ vsprintf_a(const char *f, va_list args)
 
     va_copy(args_copy, args);
     n = vsnprintf(buf, 64, f, args_copy);
+    va_end(args_copy)
     if(n >= 0 && n < 64) {
         return strdup_n(buf, n);
     }
@@ -308,6 +309,7 @@ vsprintf_a(const char *f, va_list args)
             return NULL;
         va_copy(args_copy, args);
         n = vsnprintf(string, size, f, args_copy);
+        va_end(args_copy)
         if(n >= 0 && n < size)
             return string;
         else if(n >= size)
