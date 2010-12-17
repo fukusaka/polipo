@@ -305,8 +305,8 @@ initForbidden(void)
     }
 
     if(forbiddenFile == NULL) {
-        if(access("/etc/polipo/forbidden", F_OK) >= 0)
-            forbiddenFile = internAtom("/etc/polipo/forbidden");
+        if(access(SYSCONFDIR "/polipo/forbidden", F_OK) >= 0)
+            forbiddenFile = internAtom(SYSCONFDIR "/etc/polipo/forbidden");
     }
 
     parseDomainFile(forbiddenFile, &forbiddenDomains, &forbiddenRegex);
@@ -326,8 +326,8 @@ initForbidden(void)
     }
 
     if(uncachableFile == NULL) {
-        if(access("/etc/polipo/uncachable", F_OK) >= 0)
-            uncachableFile = internAtom("/etc/polipo/uncachable");
+        if(access(SYSCONFDIR "/etc/polipo/uncachable", F_OK) >= 0)
+            uncachableFile = internAtom(SYSCONFDIR "/etc/polipo/uncachable");
     }
 
     parseDomainFile(uncachableFile, &uncachableDomains, &uncachableRegex);

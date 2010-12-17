@@ -2,6 +2,7 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 MANDIR = $(PREFIX)/man
 INFODIR = $(PREFIX)/info
+SYSCONFDIR = $(PREFIX)/etc
 LOCAL_ROOT = /usr/share/polipo/www
 DISK_CACHE_ROOT = /var/cache/polipo
 
@@ -39,7 +40,8 @@ CDEBUGFLAGS = -Os -g -Wall -fno-strict-aliasing
 # LDLIBS = -lwsock32
 
 FILE_DEFINES = -DLOCAL_ROOT=\"$(LOCAL_ROOT)/\" \
-               -DDISK_CACHE_ROOT=\"$(DISK_CACHE_ROOT)/\"
+               -DDISK_CACHE_ROOT=\"$(DISK_CACHE_ROOT)/\" \
+               -DSYSCONFDIR=\"$(SYSCONFDIR)\"
 
 # You may optionally also add any of the following to DEFINES:
 #
