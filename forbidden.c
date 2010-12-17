@@ -46,6 +46,10 @@ AtomPtr uncachableFile = NULL;
 DomainPtr *uncachableDomains = NULL;
 regex_t *uncachableRegex = NULL;
 
+AtomPtr uncensorRefererFile = NULL;
+DomainPtr *uncensorRefererDomains = NULL;
+regex_t *uncensorRefererRegex = NULL;
+
 /* these three are only used internally by {parse,read}DomainFile */
 /* to avoid having to pass it all as parameters */
 static DomainPtr *domains;
@@ -83,6 +87,8 @@ preinitForbidden(void)
 #endif
     CONFIG_VARIABLE_SETTABLE(uncachableFile, CONFIG_ATOM, atomSetterForbidden,
                              "File specifying uncachable URLs.");
+    CONFIG_VARIABLE_SETTABLE(uncensorRefererFile, CONFIG_ATOM, atomSetterForbidden,
+                             "File specifying uncensorReferer URLs.");
 }
 
 static int
@@ -332,6 +338,27 @@ initForbidden(void)
 
     parseDomainFile(uncachableFile, &uncachableDomains, &uncachableRegex);
 
+
+    if(uncensorRefererFile)
+        uncensorRefererFile = expandTilde(uncensorRefererFile);
+
+    if(uncensorRefererFile == NULL) {
+        uncensorRefererFile = expandTilde(internAtom("~/.polipo-uncensorReferer"));
+        if(uncensorRefererFile) {
+            if(access(uncensorRefererFile->string, F_OK) < 0) {
+                releaseAtom(uncensorRefererFile);
+                uncensorRefererFile = NULL;
+            }
+        }
+    }
+
+    if(uncensorRefererFile == NULL) {
+        if(access(SYSCONFDIR "/etc/polipo/uncensorReferer", F_OK) >= 0)
+            uncensorRefererFile = internAtom(SYSCONFDIR "/etc/polipo/uncensorReferer");
+    }
+
+    parseDomainFile(uncensorRefererFile, &uncensorRefererDomains, &uncensorRefererRegex);
+
     return;
 }
 
@@ -377,6 +404,12 @@ int
 urlIsUncachable(char *url, int length)
 {
     return urlIsMatched(url, length, uncachableDomains, uncachableRegex);
+}
+
+int
+urlIsUncensorReferer(char *url, int length)
+{
+    return urlIsMatched(url, length, uncensorRefererDomains, uncensorRefererRegex);
 }
 
 int
@@ -759,6 +792,12 @@ initForbidden()
 
 int
 urlIsUncachable(char *url, int length)
+{
+    return 0;
+}
+
+int
+urlIsUncensorReferer(char *url, int length)
 {
     return 0;
 }

@@ -936,8 +936,9 @@ httpParseHeaders(int client, AtomPtr url,
             int h;
             if(censorReferer == 0 || 
                (censorReferer == 1 && url != NULL &&
-                urlSameHost(url->string, url->length,
-                            buf + value_start, value_end - value_start))) {
+                (urlSameHost(url->string, url->length,
+			     buf + value_start, value_end - value_start) ||
+		 urlIsUncensorReferer(url->string, url->length)))) {
                 while(hbuf_length > hbuf_size - 2)
                     RESIZE_HBUF();
                 hbuf[hbuf_length++] = '\r';
