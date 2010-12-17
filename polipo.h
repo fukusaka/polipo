@@ -126,8 +126,6 @@ THE SOFTWARE.
 #define HAVE_SETENV
 #endif
 
-#ifndef NO_IPv6
-
 #ifdef __GLIBC__
 #if (__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 2)
 #define HAVE_IPv6
@@ -161,6 +159,14 @@ THE SOFTWARE.
 #endif
 #endif
 
+#ifdef __APPLE__
+#define HAVE_ASPRINTF
+#define HAVE_TIMEGM
+#define HAVE_FFSL
+#endif
+
+#ifdef NO_IPv6
+#undef HAVE_IPV6
 #endif
 
 #if defined(i386) || defined(__mc68020__) || defined(__x86_64__)
