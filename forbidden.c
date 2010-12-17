@@ -434,7 +434,7 @@ urlForbidden(AtomPtr url,
     }
 
 #ifndef NO_REDIRECTOR
-    if(code == 0 && redirector) {
+    if(code == 0 && redirector && !urlIsLocal(url->string, url->length)) {
         RedirectRequestPtr request;
         request = malloc(sizeof(RedirectRequestRec));
         if(request == NULL) {
@@ -544,7 +544,7 @@ redirectorTrigger(void)
     }
     do_stream_2(IO_WRITE, redirector_write_fd, 0,
                 request->url->string, request->url->length,
-                "\n", 1,
+		" 127.0.0.1/- - GET\n", 19,
                 redirectorStreamHandler1, request);
 }
 
@@ -584,7 +584,7 @@ redirectorStreamHandler2(int status,
                          StreamRequestPtr srequest)
 {
     RedirectRequestPtr request = (RedirectRequestPtr)srequest->data;
-    char *c;
+    char *c, *c2;
     AtomPtr message;
     AtomPtr headers;
     int code;
@@ -602,10 +602,14 @@ redirectorStreamHandler2(int status,
         request->handler(-EREDIRECTOR, request->url, NULL, NULL, request->data);
         goto kill;
     }
+    c2 = memchr(redirector_buffer, ' ', srequest->offset);
+    if (c2 != NULL) c = c2;
     *c = '\0';
 
+#if 0
     if(srequest->offset > c + 1 - redirector_buffer)
         do_log(L_WARN, "Stray bytes in redirector output.\n");
+#endif
 
     if(c > redirector_buffer + 1 &&
        (c - redirector_buffer != request->url->length ||
