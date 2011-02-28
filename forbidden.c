@@ -38,6 +38,7 @@ int forbiddenRedirectCode = 302;
 
 AtomPtr redirector = NULL;
 int redirectorRedirectCode = 302;
+int redirectorIsServerSide = 0;
 
 DomainPtr *forbiddenDomains = NULL;
 regex_t *forbiddenRegex = NULL;
@@ -84,6 +85,9 @@ preinitForbidden(void)
     CONFIG_VARIABLE_SETTABLE(redirectorRedirectCode, CONFIG_INT,
                              configIntSetter,
                              "Redirect code to use with redirector.");
+    CONFIG_VARIABLE_SETTABLE(redirectorIsServerSide, CONFIG_BOOLEAN,
+                             configIntSetter,
+                             "server-side redirector");
 #endif
     CONFIG_VARIABLE_SETTABLE(uncachableFile, CONFIG_ATOM, atomSetterForbidden,
                              "File specifying uncachable URLs.");
@@ -544,7 +548,7 @@ redirectorTrigger(void)
     }
     do_stream_2(IO_WRITE, redirector_write_fd, 0,
                 request->url->string, request->url->length,
-		" 127.0.0.1/- - GET\n", 19,
+                " 127.0.0.1/- - GET\n", 19,
                 redirectorStreamHandler1, request);
 }
 
@@ -584,10 +588,11 @@ redirectorStreamHandler2(int status,
                          StreamRequestPtr srequest)
 {
     RedirectRequestPtr request = (RedirectRequestPtr)srequest->data;
-    char *c, *c2;
-    AtomPtr message;
-    AtomPtr headers;
-    int code;
+    char *c, *c2, *buf;
+    AtomPtr url = request->url;
+    AtomPtr message = NULL;
+    AtomPtr headers = NULL;
+    int code = 0;
 
     if(status < 0) {
         do_log_error(L_ERROR, -status, "Read from redirector failed");
@@ -606,34 +611,39 @@ redirectorStreamHandler2(int status,
     if (c2 != NULL) c = c2;
     *c = '\0';
 
-#if 0
-    if(srequest->offset > c + 1 - redirector_buffer)
-        do_log(L_WARN, "Stray bytes in redirector output.\n");
-#endif
-
-    if(c > redirector_buffer + 1 &&
-       (c - redirector_buffer != request->url->length ||
-        memcmp(redirector_buffer, request->url->string,
-               request->url->length) != 0)) {
-        code = redirectorRedirectCode;
-        message = internAtom("Redirected by external redirector");
-        if(message == NULL) {
-            request->handler(-ENOMEM, request->url, NULL, NULL, request->data);
-            goto kill;
-        }
-
-        headers = internAtomF("\r\nLocation: %s", redirector_buffer);
-        if(headers == NULL) {
-            releaseAtom(message);
-            request->handler(-ENOMEM, request->url, NULL, NULL, request->data);
-            goto kill;
-        }
-    } else {
-        code = 0;
-        message = NULL;
-        headers = NULL;
+    buf = redirector_buffer;
+    if (digit(buf[0]) && digit(buf[1]) && digit(buf[2]) && buf[3] == ':') {
+        code = strtol(buf, NULL, 10);
+        buf += 4;
     }
-    request->handler(code, request->url,
+
+    if(c > buf + 1 &&
+       (c - buf != request->url->length ||
+        memcmp(buf, request->url->string,
+               request->url->length) != 0)) {
+        if (!redirectorIsServerSide || (300 <= code && code <= 399)) {
+            if (!(300 <= code && code <= 399))
+                code = redirectorRedirectCode;
+            message = internAtom("Redirected by external redirector");
+            if(message == NULL) {
+                request->handler(-ENOMEM, request->url, NULL, NULL, request->data);
+                goto kill;
+            }
+            headers = internAtomF("\r\nLocation: %s", redirector_buffer);
+            if(headers == NULL) {
+                releaseAtom(message);
+                request->handler(-ENOMEM, request->url, NULL, NULL, request->data);
+                goto kill;
+            }
+        } else {
+            url = internAtom(buf);
+            if(url == NULL) {
+                request->handler(-ENOMEM, request->url, NULL, NULL, request->data);
+                goto kill;
+            }
+        }
+    }
+    request->handler(code, url,
                      message, headers, request->data);
     goto cont;
 
